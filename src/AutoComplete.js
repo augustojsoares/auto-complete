@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 
 import { KEY_ENTER, KEY_UP, KEY_DOWN, KEY_ESCAPE, NETWORK_DELAY } from './constants';
 
+import './AutoComplete.css';
 class AutoComplete extends Component {
   constructor(props) {
     super(props);
@@ -15,6 +16,8 @@ class AutoComplete extends Component {
     };
   }
 
+  buildRegex = input => new RegExp(`(${input.trim().replace(/(\W)/gi, match => '\\' + match)})`, 'gi');
+
   setResult = hint =>
     this.setState({
       activeHintIndex: 0,
@@ -27,7 +30,6 @@ class AutoComplete extends Component {
   hideHints = () =>
     this.setState({
       activeHintIndex: 0,
-      showSuggestions: false,
       matchingHints: [],
       isDone: true
     });
@@ -35,6 +37,7 @@ class AutoComplete extends Component {
   filterHints = value => {
     const {
       props: { hints },
+      buildRegex,
       state: { activeFetch }
     } = this;
 
@@ -42,7 +45,7 @@ class AutoComplete extends Component {
 
     return new Promise(resolve => {
       const activeFetch = setTimeout(() => {
-        resolve(value.length !== 0 ? hints.filter(hint => RegExp(value, 'gi').test(hint)) : []);
+        resolve(value.length !== 0 ? hints.filter(hint => buildRegex(value).test(hint)) : []);
       }, NETWORK_DELAY);
 
       this.setState({ activeFetch });
@@ -105,18 +108,26 @@ class AutoComplete extends Component {
 
   renderHint = (hint, index) => {
     const {
-      state: { activeHintIndex },
-      handleOnClick
+      state: { input, activeHintIndex }
     } = this;
 
+    const parts = hint.split(this.buildRegex(input));
     return (
       <li
         key={hint}
         id={`hint-${index}`}
         className={`hint ${index === activeHintIndex ? 'selected' : ''}`}
-        onClick={handleOnClick}
+        onClick={this.handleOnClick}
       >
-        {hint}
+        {parts.map((part, index) =>
+          part.toLowerCase() === input.trim().toLowerCase() ? (
+            <strong className="highlighted" key={`${hint}-part-${index}`}>
+              {part}
+            </strong>
+          ) : (
+            part
+          )
+        )}
       </li>
     );
   };
