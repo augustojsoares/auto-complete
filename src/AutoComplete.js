@@ -16,6 +16,13 @@ class AutoComplete extends Component {
     };
   }
 
+  scrollToIndex = index => {
+    const hintAtIndex = document.getElementById(`hint-${index}`);
+    if (hintAtIndex) {
+      hintAtIndex.scrollIntoView();
+    }
+  };
+
   buildRegex = input => new RegExp(`(${input.trim().replace(/(\W)/gi, match => '\\' + match)})`, 'gi');
 
   setResult = hint =>
@@ -76,7 +83,8 @@ class AutoComplete extends Component {
     const {
       state: { activeHintIndex, matchingHints },
       setResult,
-      hideHints
+      hideHints,
+      scrollToIndex
     } = this;
 
     switch (keyCode) {
@@ -89,12 +97,14 @@ class AutoComplete extends Component {
       case KEY_UP:
         if (activeHintIndex !== 0) {
           this.setState({ activeHintIndex: activeHintIndex - 1 });
+          scrollToIndex(activeHintIndex - 2);
         }
         break;
 
       case KEY_DOWN:
         if (activeHintIndex < matchingHints.length - 1) {
           this.setState({ activeHintIndex: activeHintIndex + 1 });
+          scrollToIndex(activeHintIndex);
         }
         break;
 
@@ -143,6 +153,14 @@ class AutoComplete extends Component {
       <div className="auto-complete">
         <div className="input-box">
           <input type="text" value={input} onChange={handleOnChange} onKeyDown={handleOnKeyDown} />
+          {isFetching && (
+            <div className="lds-ring">
+              <div></div>
+              <div></div>
+              <div></div>
+              <div></div>
+            </div>
+          )}
         </div>
         {matchingHints.length ? (
           <ul className="hint-box">{matchingHints.map(renderHint)}</ul>
