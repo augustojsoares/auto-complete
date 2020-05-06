@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 
-import { KEY_ENTER, KEY_UP, KEY_DOWN, KEY_ESCAPE, NETWORK_DELAY } from './constants';
+import { KEY_ENTER, KEY_UP, KEY_DOWN, KEY_ESCAPE, NETWORK_DELAY, NETWORK_FAIL_RATE } from './constants';
 
 import './AutoComplete.css';
 
@@ -14,7 +14,8 @@ class AutoComplete extends Component {
       activeHintIndex: 0,
       activeFetch: null,
       isFetching: false,
-      isDone: true
+      isDone: true,
+      hasError: false
     };
   }
 
@@ -35,7 +36,8 @@ class AutoComplete extends Component {
       matchingHints: [],
       input: hint,
       isDone: true,
-      isFetching: false
+      isFetching: false,
+      hasError: false
     });
 
   hideHints = () =>
@@ -54,14 +56,17 @@ class AutoComplete extends Component {
       state: { activeFetch }
     } = this;
 
-    // this timeout logic aims to replicate network asynchronous behavior
-    // you can fiddle with the "network delay" in the constants file
+    // this timeout and promise logic aims to replicate network asynchronous behavior
+    // you can fiddle with the "network delay" and "fail rate" in the constants file
     // implemented cancelation of currently unresolved requests before firing a new one
     // would probably debounce them as well for production app
     clearTimeout(activeFetch);
 
-    return new Promise(resolve => {
+    return new Promise((resolve, reject) => {
       const activeFetch = setTimeout(() => {
+        if (Math.random() < NETWORK_FAIL_RATE) {
+          reject();
+        }
         resolve(value.length !== 0 ? hints.filter(hint => buildRegex(value).test(hint)) : []);
       }, NETWORK_DELAY);
 
@@ -72,15 +77,24 @@ class AutoComplete extends Component {
   handleOnChange = ({ target: { value } }) => {
     const { state, filterHints } = this;
 
-    this.setState({ ...state, input: value, isFetching: true, isDone: false }, () => {
-      filterHints(value).then(matchingHints => {
-        this.setState({
-          ...this.state,
-          matchingHints,
-          isFetching: false,
-          activeHintIndex: 0
+    this.setState({ ...state, input: value, isFetching: true, isDone: false, hasError: false }, () => {
+      filterHints(value)
+        .then(matchingHints => {
+          this.setState({
+            ...this.state,
+            matchingHints,
+            isFetching: false,
+            activeHintIndex: 0
+          });
+        })
+        .catch(() => {
+          this.setState({
+            ...this.state,
+            isFetching: false,
+            matchingHints: [],
+            hasError: true
+          });
         });
-      });
     });
   };
 
@@ -155,7 +169,7 @@ class AutoComplete extends Component {
       handleOnKeyDown,
       renderHint,
       hideHints,
-      state: { input, matchingHints, isFetching, isDone }
+      state: { input, matchingHints, isFetching, isDone, hasError }
     } = this;
     return (
       <div className="auto-complete">
@@ -173,8 +187,9 @@ class AutoComplete extends Component {
         {matchingHints.length ? (
           <ul className="hint-box">{matchingHints.map(renderHint)}</ul>
         ) : (
-          (input.length !== 0 && !isFetching && !isDone && <span className="tip">No matches!</span>) ||
-          (input.length === 0 && !isFetching && <span className="tip">Start typing to see hints</span>)
+          (input.length === 0 && !isFetching && !hasError && <span className="tip">Start typing to see hints</span>) ||
+          (input.length !== 0 && !isFetching && !isDone && !hasError && <span className="tip">No matches!</span>) ||
+          (input.length !== 0 && hasError && <span className="tip error">There was an error loading your hints.</span>)
         )}
       </div>
     );

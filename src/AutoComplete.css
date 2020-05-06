@@ -92,3 +92,7 @@
   font-style: italic;
   font-size: 12px;
 }
+
+.tip.error {
+  color: #a00;
+}
