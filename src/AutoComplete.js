@@ -43,7 +43,7 @@ class AutoComplete extends Component {
       isDone: true
     });
 
-  // Could add optimization where if the old input is a substring of the new input, 
+  // Could add optimization where if the old input is a substring of the new input,
   // only filter on matchingHints since all results are already in there
   filterHints = value => {
     const {
@@ -152,12 +152,13 @@ class AutoComplete extends Component {
       handleOnChange,
       handleOnKeyDown,
       renderHint,
+      hideHints,
       state: { input, matchingHints, isFetching, isDone }
     } = this;
     return (
       <div className="auto-complete">
         <div className="input-box">
-          <input type="text" value={input} onChange={handleOnChange} onKeyDown={handleOnKeyDown} />
+          <input type="text" value={input} onChange={handleOnChange} onKeyDown={handleOnKeyDown} onBlur={hideHints} />
           {isFetching && (
             <div className="lds-ring">
               <div></div>
