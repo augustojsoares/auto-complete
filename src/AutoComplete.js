@@ -16,6 +16,7 @@ class AutoComplete extends Component {
     };
   }
 
+  // this was a quick and dirty fix. With more time would probably re-implement using refs
   scrollToIndex = index => {
     const hintAtIndex = document.getElementById(`hint-${index}`);
     if (hintAtIndex) {
@@ -23,6 +24,7 @@ class AutoComplete extends Component {
     }
   };
 
+  // Had to do this to highlight the matches and simultaneously not having it blow up when special chars are used
   buildRegex = input => new RegExp(`(${input.trim().replace(/(\W)/gi, match => '\\' + match)})`, 'gi');
 
   setResult = hint =>
@@ -41,6 +43,8 @@ class AutoComplete extends Component {
       isDone: true
     });
 
+  // Could add optimization where if the old input is a substring of the new input, 
+  // only filter on matchingHints since all results are already in there
   filterHints = value => {
     const {
       props: { hints },
@@ -48,6 +52,10 @@ class AutoComplete extends Component {
       state: { activeFetch }
     } = this;
 
+    // this timeout logic aims to replicate network asynchronous behavior
+    // you can fiddle with the "network delay" in the constants file
+    // implemented cancelation of currently unresolved requests before firing a new one
+    // would probably debounce them as well for production app
     clearTimeout(activeFetch);
 
     return new Promise(resolve => {
@@ -62,10 +70,7 @@ class AutoComplete extends Component {
   handleOnChange = ({ target: { value } }) => {
     const { state, filterHints } = this;
 
-    const before = new Date();
     this.setState({ ...state, input: value, isFetching: true, isDone: false }, () => {
-      const after = new Date();
-      console.log(after - before);
       filterHints(value).then(matchingHints => {
         this.setState({
           ...this.state,
