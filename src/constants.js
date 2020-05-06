@@ -1,0 +1,8 @@
+const KEY_ENTER = 13;
+const KEY_UP = 38;
+const KEY_DOWN = 40;
+const KEY_ESCAPE = 27;
+
+const NETWORK_DELAY = 0;
+
+export { KEY_ENTER, KEY_UP, KEY_DOWN, KEY_ESCAPE, NETWORK_DELAY };
