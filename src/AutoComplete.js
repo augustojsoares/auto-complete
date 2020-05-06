@@ -8,7 +8,10 @@ class AutoComplete extends Component {
     this.state = {
       input: '',
       matchingHints: [],
-      activeHintIndex: 0
+      activeHintIndex: 0,
+      activeFetch: null,
+      isFetching: false,
+      isDone: true
     };
   }
 
@@ -16,21 +19,51 @@ class AutoComplete extends Component {
     this.setState({
       activeHintIndex: 0,
       matchingHints: [],
-      input: hint
+      input: hint,
+      isDone: true,
+      isFetching: false
     });
 
   hideHints = () =>
     this.setState({
       activeHintIndex: 0,
       showSuggestions: false,
-      matchingHints: []
+      matchingHints: [],
+      isDone: true
     });
 
+  filterHints = value => {
+    const {
+      props: { hints },
+      state: { activeFetch }
+    } = this;
+
+    clearTimeout(activeFetch);
+
+    return new Promise(resolve => {
+      const activeFetch = setTimeout(() => {
+        resolve(value.length !== 0 ? hints.filter(hint => RegExp(value, 'gi').test(hint)) : []);
+      }, NETWORK_DELAY);
+
+      this.setState({ activeFetch });
+    });
+  };
+
   handleOnChange = ({ target: { value } }) => {
-    this.setState({
-      ...this.state,
-      input: value,
-      matchingHints: value.length === 0 ? [] : this.props.hints.filter(hint => RegExp(value, 'gi').test(hint))
+    const { state, filterHints } = this;
+
+    const before = new Date();
+    this.setState({ ...state, input: value, isFetching: true, isDone: false }, () => {
+      const after = new Date();
+      console.log(after - before);
+      filterHints(value).then(matchingHints => {
+        this.setState({
+          ...this.state,
+          matchingHints,
+          isFetching: false,
+          activeHintIndex: 0
+        });
+      });
     });
   };
 
@@ -70,26 +103,41 @@ class AutoComplete extends Component {
     }
   };
 
+  renderHint = (hint, index) => {
+    const {
+      state: { activeHintIndex },
+      handleOnClick
+    } = this;
+
+    return (
+      <li
+        key={hint}
+        id={`hint-${index}`}
+        className={`hint ${index === activeHintIndex ? 'selected' : ''}`}
+        onClick={handleOnClick}
+      >
+        {hint}
+      </li>
+    );
+  };
+
   render = () => {
     const {
       handleOnChange,
-      handleOnClick,
       handleOnKeyDown,
-      state: { input, matchingHints, activeHintIndex }
+      renderHint,
+      state: { input, matchingHints, isFetching, isDone }
     } = this;
     return (
       <div className="auto-complete">
         <div className="input-box">
           <input type="text" value={input} onChange={handleOnChange} onKeyDown={handleOnKeyDown} />
         </div>
-        {!!matchingHints.length && (
-          <ul>
-            {matchingHints.map((hint, index) => (
-              <li key={hint} className={`hint ${index === activeHintIndex ? 'selected' : ''}`} onClick={handleOnClick}>
-                {hint}
-              </li>
-            ))}
-          </ul>
+        {matchingHints.length ? (
+          <ul className="hint-box">{matchingHints.map(renderHint)}</ul>
+        ) : (
+          (input.length !== 0 && !isFetching && !isDone && <span className="tip">No matches!</span>) ||
+          (input.length === 0 && !isFetching && <span className="tip">Start typing to see hints</span>)
         )}
       </div>
     );
