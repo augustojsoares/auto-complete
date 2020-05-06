@@ -3,6 +3,8 @@ import React, { Component } from 'react';
 import { KEY_ENTER, KEY_UP, KEY_DOWN, KEY_ESCAPE, NETWORK_DELAY } from './constants';
 
 import './AutoComplete.css';
+
+// some proptypes would have been nice
 class AutoComplete extends Component {
   constructor(props) {
     super(props);
